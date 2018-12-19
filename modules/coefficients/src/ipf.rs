@@ -168,41 +168,29 @@ fn get_parameters(sex: Sex, equipment: Equipment, event: Event) -> Parameters {
         Equipment::Single | Equipment::Multi => Equipment::Single,
     };
 
-    // Full-power parameters.
-    if event.is_full_power() {
-        match (sex, equipment) {
-            (Sex::M, Equipment::Raw) => (310.67, 857.785, 53.21602246, 147.0835213),
-            (Sex::M, Equipment::Single) => (387.265, 1121.28, 80.63242593, 222.4895974),
-            (Sex::F, Equipment::Raw) => (125.1435, 228.03, 34.52461523, 86.83009976),
-            (Sex::F, Equipment::Single) => (176.58, 373.315, 48.45340151, 110.0102772),
-            _ => (0.0, 0.0, 0.0, 0.0),
-        }
-    } else if event.is_squat_only() {
-        match (sex, equipment) {
-            (Sex::M, Equipment::Raw) => (123.1, 363.085, 25.16669173, 75.43114253),
-            (Sex::M, Equipment::Single) => (150.485, 446.445, 36.51551612, 103.7060711),
-            (Sex::F, Equipment::Raw) => (50.479, 105.632, 19.18458916, 56.22148694),
-            (Sex::F, Equipment::Single) => (74.6855, 171.585, 21.94753597, 52.2948313),
-            _ => (0.0, 0.0, 0.0, 0.0),
-        }
-    } else if event.is_bench_only() {
-        match (sex, equipment) {
-            (Sex::M, Equipment::Raw) => (86.4745, 259.155, 17.57845791, 53.12202336),
-            (Sex::M, Equipment::Single) => (133.94, 441.465, 35.39379355, 113.0057151),
-            (Sex::F, Equipment::Raw) => (25.0485, 43.848, 6.717175515, 13.95197273),
-            (Sex::F, Equipment::Single) => (49.106, 124.209, 23.19897729, 67.4926054),
-            _ => (0.0, 0.0, 0.0, 0.0),
-        }
-    } else if event.is_deadlift_only() {
-        match (sex, equipment) {
-            (Sex::M, Equipment::Raw) => (103.5355, 244.765, 15.3713591, 31.50223091),
-            (Sex::M, Equipment::Single) => (110.135, 263.66, 14.99598937, 23.01097909),
-            (Sex::F, Equipment::Raw) => (47.136, 67.349, 9.155512107, 13.66997543),
-            (Sex::F, Equipment::Single) => (51.002, 69.8265, 8.58023763, 5.725798366),
-            _ => (0.0, 0.0, 0.0, 0.0),
-        }
-    } else {
-        (0.0, 0.0, 0.0, 0.0)
+    const SBD: Event = Event::sbd();
+    const S: Event = Event::s();
+    const B: Event = Event::b();
+    const D: Event = Event::d();
+
+    match (event, sex, equipment) {
+        (SBD, Sex::M, Equipment::Raw) => (310.67, 857.785, 53.21602246, 147.0835213),
+        (SBD, Sex::M, Equipment::Single) => (387.265, 1121.28, 80.63242593, 222.4895974),
+        (SBD, Sex::F, Equipment::Raw) => (125.1435, 228.03, 34.52461523, 86.83009976),
+        (SBD, Sex::F, Equipment::Single) => (176.58, 373.315, 48.45340151, 110.0102772),
+        (S, Sex::M, Equipment::Raw) => (123.1, 363.085, 25.16669173, 75.43114253),
+        (S, Sex::M, Equipment::Single) => (150.485, 446.445, 36.51551612, 103.7060711),
+        (S, Sex::F, Equipment::Raw) => (50.479, 105.632, 19.18458916, 56.22148694),
+        (S, Sex::F, Equipment::Single) => (74.6855, 171.585, 21.94753597, 52.2948313),
+        (B, Sex::M, Equipment::Raw) => (86.4745, 259.155, 17.57845791, 53.12202336),
+        (B, Sex::M, Equipment::Single) => (133.94, 441.465, 35.39379355, 113.0057151),
+        (B, Sex::F, Equipment::Raw) => (25.0485, 43.848, 6.717175515, 13.95197273),
+        (B, Sex::F, Equipment::Single) => (49.106, 124.209, 23.19897729, 67.4926054),
+        (D, Sex::M, Equipment::Raw) => (103.5355, 244.765, 15.3713591, 31.50223091),
+        (D, Sex::M, Equipment::Single) => (110.135, 263.66, 14.99598937, 23.01097909),
+        (D, Sex::F, Equipment::Raw) => (47.136, 67.349, 9.155512107, 13.66997543),
+        (D, Sex::F, Equipment::Single) => (51.002, 69.8265, 8.58023763, 5.725798366),
+        _ => (0.0, 0.0, 0.0, 0.0),
     }
 }
 
