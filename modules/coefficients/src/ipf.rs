@@ -149,6 +149,8 @@ fn erf(x: f64) -> f64 {
 ///
 /// A closed form solution does not exist for this integral.
 ///
+/// # References
+///
 /// https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function.
 fn cumulative_normal(x: f64, mean: f64, deviation: f64) -> f64 {
     0.5 * (1.0 + erf((x - mean) / (deviation * SQRT_2)))
