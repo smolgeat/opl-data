@@ -144,7 +144,7 @@ fn erf(x: f64) -> f64 {
 /// This represents the area of the graph under the given normal distribution
 /// from negative infinity until `x`.
 ///
-/// The returned value is the probability that the value a normally-distributed
+/// The returned value is the probability that a normally-distributed
 /// random value (representing weight lifted) will be less than or equal to `x`.
 ///
 /// A closed form solution does not exist for this integral.
