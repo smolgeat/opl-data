@@ -28,6 +28,7 @@ pub use crate::checklib::meet::{
 pub use crate::checklib::CheckResult;
 
 pub mod compiler;
+pub mod disambig;
 
 mod meetdata;
 use meetdata::EntryIndex;

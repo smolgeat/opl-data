@@ -426,8 +426,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Group entries by lifter.
     let timing = get_instant_if(args.debug_timing);
     let liftermap = meetdata.create_liftermap();
+    maybe_print_elapsed_for("create_liftermap", timing);
+
+    // Perform auto-disambiguation.
+    let timing = get_instant_if(args.debug_timing);
+    let liftermap = checker::disambig::infer(liftermap, &mut meetdata);
+    maybe_print_elapsed_for("auto-disambiguation", timing);
 
     // Check for consistency errors for individual lifters.
+    let timing = get_instant_if(args.debug_timing);
     for report in checker::consistency::check(&liftermap, &meetdata, &lifterdata) {
         let (errors, warnings) = report.count_messages();
         error_count += errors;
@@ -439,7 +446,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             write_report(&mut handle, report);
         }
     }
-    maybe_print_elapsed_for("liftermap", timing);
+    maybe_print_elapsed_for("consistency", timing);
 
     // The default mode without arguments just performs data checks.
     print_summary(
