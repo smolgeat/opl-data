@@ -1,7 +1,7 @@
 //! Auto-disambiguation for lifters with the same username.
 
-use crate::{AllMeetData, EntryIndex, LifterMap};
 use crate::checklib::Entry;
+use crate::{AllMeetData, EntryIndex, LifterMap};
 
 /// Represents the calculated (dis)similarity of an [Entry] pair.
 ///
@@ -14,6 +14,17 @@ struct Similarity(f64);
 impl Similarity {
     pub const MAX: Similarity = Similarity(100.0);
     pub const MIN: Similarity = Similarity(-100.0);
+
+    /// Whether the [Similarity] shows similarity.
+    pub fn is_similar(self) -> bool {
+        // Anything closer than halfway to maximum is similar.
+        self.0 <= Self::MIN.0 + ((Self::MAX.0 - Self::MIN.0) / 2.0)
+    }
+
+    /// Whether the [Similarity] shows dissimilarity.
+    pub fn is_dissimilar(self) -> bool {
+        !self.is_similar()
+    }
 }
 
 impl From<Distance> for Similarity {
@@ -52,13 +63,23 @@ impl Distance {
     pub fn max(self, other: Distance) -> Distance {
         Distance(self.0.max(other.0))
     }
+
+    /// Whether the [Distance] is considered "near" (similar).
+    pub fn is_near(self) -> bool {
+        // Anything closer than halfway to maximum is near.
+        self.0 <= Self::MIN.0 + ((Self::MAX.0 - Self::MIN.0) / 2.0)
+    }
+
+    /// Whether the [Distance] is considered "far" (dissimilar).
+    pub fn is_far(self) -> bool {
+        !self.is_near()
+    }
 }
 
 /// Compares two entries for [Sex] similarity.
 ///
 /// TODO: In practice this is utterly useless because the consistency checker
 ///       complains vigorously if there are sex errors already.
-///
 fn sex_distance(e1: &Entry, e2: &Entry) -> Distance {
     if e1.sex != e2.sex {
         Distance::MAX
