@@ -1,12 +1,12 @@
 //! Auto-disambiguation for lifters with the same username.
 
-use crate::{AllMeetData, LifterMap};
-
+use crate::{AllMeetData, EntryIndex, LifterMap};
 
 /// Represents the calculated (dis)similarity of an [Entry] pair.
 ///
 /// Similarity is represented as a score in the range `[-100, 100]`.
-/// Positive values express similarity, and negative values express dissimilarity.
+/// Positive values express similarity, and negative values express
+/// dissimilarity.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 struct Similarity(f64);
 
@@ -32,13 +32,14 @@ impl From<Distance> for Similarity {
     }
 }
 
-
 /// Represents the distance between an [Entry] pair in n-dimensional space.
 ///
-/// Distance is calculated using the Chebyshev distance: each coordinate is considered
-/// independently, and the distance is the maximum coordinate distance encountered.
+/// Distance is calculated using the Chebyshev distance: each coordinate is
+/// considered independently, and the distance is the maximum coordinate
+/// distance encountered.
 ///
-/// Since the scale is arbitrary, we set the greatest possible distance to `1.0`.
+/// Since the scale is arbitrary, we set the greatest possible distance to
+/// `1.0`.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 struct Distance(f64);
 
@@ -52,12 +53,18 @@ impl Distance {
     }
 }
 
+fn sex_distance(meetdata: &AllMeetData, e1: EntryIndex, e2: EntryIndex) -> Distance {
+    if meetdata.get_entry(e1).sex != meetdata.get_entry(e2).sex {
+        Distance(Distance::MAX)
+    } else {
+        Distance(Distance::MIN)
+    }
+}
 
 /// Performs auto-disambiguation.
 ///
 /// Consumes the original LifterMap, producing an updated LifterMap.
 /// The AllMeetData entries are modified to match new disambiguations.
-///
 pub fn infer(liftermap: LifterMap, meetdata: &mut AllMeetData) -> LifterMap {
     // TODO: Skip entries if they're in the lifterdata, like for sex exemptions
     for username in liftermap.keys() {
@@ -73,12 +80,12 @@ pub fn infer(liftermap: LifterMap, meetdata: &mut AllMeetData) -> LifterMap {
     meetdata.create_liftermap()
 }
 
-
 /// Performs auto-disambiguation for a single base username.
 pub fn infer_for(username: &str, liftermap: &LifterMap, meetdata: &mut AllMeetData) {
     // Make a source for each variant.
     // Make a sink for each variant.
-    //      Fill the manually-disambiguated sinks with the manually-disambiguated data.
+    //      Fill the manually-disambiguated sinks with the
+    // manually-disambiguated data.
     //
     // For each entry in the base username's source, sorted by date:
     //      Compare to each sink. If compatible, place in the earliest sink.
@@ -91,11 +98,13 @@ pub fn infer_for(username: &str, liftermap: &LifterMap, meetdata: &mut AllMeetDa
     //      Something like "degree of similarity".
     //
     //      Suppose we have some cmp(A,B) function that compares the similarity
-    //      of two entries. So that's like == 1.0 if compatible, == -1.0 if completely
-    //      incompatible, with some linear amount in between that.
+    //      of two entries. So that's like == 1.0 if compatible, == -1.0 if
+    // completely      incompatible, with some linear amount in between
+    // that.
     //
-    //          It has to be -1.0, otherwise it would always be optimal to put all
-    //          the entries in a single bucket, since every pair would be present.
+    //          It has to be -1.0, otherwise it would always be optimal to put
+    // all          the entries in a single bucket, since every pair would
+    // be present.
     //
     //      Then we want to make N buckets such that
     //
@@ -103,8 +112,9 @@ pub fn infer_for(username: &str, liftermap: &LifterMap, meetdata: &mut AllMeetDa
     //
     //          is maximized.
     //
-    //      So just to get some intution, suppose we have buckets (A,B) and (C,D).
-    //      If we we move B to the other bucket, that affects the score like:
+    //      So just to get some intution, suppose we have buckets (A,B) and
+    // (C,D).      If we we move B to the other bucket, that affects the
+    // score like:
     //
     //          - cmp(A,B) + cmp(B,C) + cmp(B,D).
     //
@@ -113,45 +123,47 @@ pub fn infer_for(username: &str, liftermap: &LifterMap, meetdata: &mut AllMeetDa
     //          => cmp(B,C) + cmp(B,D) - cmp(A,B) > 0
     //          => cmp(B,C) + cmp(B,D) > cmp(A,B)
     //
-    //      The optimum is found in the space of all permutations with separators.
+    //      The optimum is found in the space of all permutations with
+    // separators.
     //
     //      How do you know if you should make a new category? Well, you don't
     //      put it into any category where the sum of its cmp() functions with
-    //      its neighbors is negative. So you move it to the most-positive category,
-    //      and if they're all negative, you make a new one.
+    //      its neighbors is negative. So you move it to the most-positive
+    // category,      and if they're all negative, you make a new one.
     //
-    //      Well... except for we're not really interested in comparing with *all*
-    //      the things in the bucket. If a lifter competed in 2020 and in 1970,
-    //      we're not interested in the similarity of those two results. We're interested
-    //      in the similarity of *nearby* results.
+    //      Well... except for we're not really interested in comparing with
+    // *all*      the things in the bucket. If a lifter competed in 2020 and
+    // in 1970,      we're not interested in the similarity of those two
+    // results. We're interested      in the similarity of *nearby* results.
     //
-    //      Also, the above formulation double-counts, since it does cmp(B,C) and cmp(C,B).
-    //      We don't really care about that.
+    //      Also, the above formulation double-counts, since it does cmp(B,C)
+    // and cmp(C,B).      We don't really care about that.
     //
     //      So, how about: for A_n, we compare against A_{n-1} and A_{n-2}.
-    //      Wait, that's kind of stupid. Maybe the compatibility function should weight by date?
-    //      So if you're far away, then it matters less. Then if we want that to matter *zero*,
-    //      we can certainly do so.
+    //      Wait, that's kind of stupid. Maybe the compatibility function should
+    // weight by date?      So if you're far away, then it matters less.
+    // Then if we want that to matter *zero*,      we can certainly do so.
     //
-    //      We should probably use the Chebyshev distance: the trait that produces
-    //      the *greatest* distance is the one that's used, still positive or negative
-    //      (but the distance is taken as the absolute value).
-    //          
+    //      We should probably use the Chebyshev distance: the trait that
+    // produces      the *greatest* distance is the one that's used, still
+    // positive or negative      (but the distance is taken as the absolute
+    // value).
+    //
     //
     // If there's more than 1 sink, go through and rename everything.
     // Newly-created sinks get named like #3A (for "Auto").
     //
-    //      Compare pairwise 
+    //      Compare pairwise
     //
     // For each entry in the base username's bucket, sorted by date:
     //
-    //      Look for the 
+    //      Look for the
 
     // Are there manually-disambiguated variants?
     //
     // Sort them all by date.
     //
-    // 
+    //
 }
 
 #[cfg(test)]
