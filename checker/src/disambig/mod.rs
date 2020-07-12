@@ -1,6 +1,7 @@
 //! Auto-disambiguation for lifters with the same username.
 
 use crate::{AllMeetData, EntryIndex, LifterMap};
+use crate::checklib::Entry;
 
 /// Represents the calculated (dis)similarity of an [Entry] pair.
 ///
@@ -11,24 +12,24 @@ use crate::{AllMeetData, EntryIndex, LifterMap};
 struct Similarity(f64);
 
 impl Similarity {
-    pub const MAX: f64 = 100.0;
-    pub const MIN: f64 = -100.0;
+    pub const MAX: Similarity = Similarity(100.0);
+    pub const MIN: Similarity = Similarity(-100.0);
 }
 
 impl From<Distance> for Similarity {
     /// Linearly transforms a [Distance] range into a [Similarity] range.
     fn from(d: Distance) -> Similarity {
-        const DST_RANGE: f64 = Distance::MAX - Distance::MIN;
-        const SIM_RANGE: f64 = Similarity::MAX - Similarity::MIN;
+        const DST_RANGE: f64 = Distance::MAX.0 - Distance::MIN.0;
+        const SIM_RANGE: f64 = Similarity::MAX.0 - Similarity::MIN.0;
 
         // Normalize the distance to [0,1].
-        let normalized = (d.0 - Distance::MIN) / DST_RANGE;
+        let normalized = (d.0 - Distance::MIN.0) / DST_RANGE;
 
         // Flip the range to [-1,0].
         let flipped = normalized * -1.0;
 
         // Convert into [Similarity::MIN, Similarity::MAX].
-        Similarity(flipped * SIM_RANGE + Similarity::MAX)
+        Similarity(flipped * SIM_RANGE + Similarity::MAX.0)
     }
 }
 
@@ -44,8 +45,8 @@ impl From<Distance> for Similarity {
 struct Distance(f64);
 
 impl Distance {
-    pub const MAX: f64 = 1.0;
-    pub const MIN: f64 = 0.0;
+    pub const MAX: Distance = Distance(1.0);
+    pub const MIN: Distance = Distance(0.0);
 
     /// Returns the maximum of two distances.
     pub fn max(self, other: Distance) -> Distance {
@@ -53,11 +54,16 @@ impl Distance {
     }
 }
 
-fn sex_distance(meetdata: &AllMeetData, e1: EntryIndex, e2: EntryIndex) -> Distance {
-    if meetdata.get_entry(e1).sex != meetdata.get_entry(e2).sex {
-        Distance(Distance::MAX)
+/// Compares two entries for [Sex] similarity.
+///
+/// TODO: In practice this is utterly useless because the consistency checker
+///       complains vigorously if there are sex errors already.
+///
+fn sex_distance(e1: &Entry, e2: &Entry) -> Distance {
+    if e1.sex != e2.sex {
+        Distance::MAX
     } else {
-        Distance(Distance::MIN)
+        Distance::MIN
     }
 }
 
